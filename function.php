@@ -416,6 +416,46 @@ function custom_buy_now_shortcode($atts) {
 
     // Add To Cart URL
    $cart_url = wc_get_checkout_url() . '?add-to-cart=' . $product_id;
+	
+	// Auction End Date
+$auction_end = get_post_meta(
+    $product_id,
+    'woo_ua_auction_end_date',
+    true
+);
+
+// Highest Bidder (Winner)
+$winner_user_id = get_post_meta(
+    $product_id,
+    'woo_ua_auction_current_bider',
+    true
+);
+
+// Current User
+$current_user_id = get_current_user_id();
+
+// Auction Status
+$is_ended = false;
+
+if ($auction_end) {
+
+    if (current_time('timestamp') >= strtotime($auction_end)) {
+
+        $is_ended = true;
+    }
+}
+
+// Winner Check
+$is_winner = false;
+
+if (
+    is_user_logged_in()
+    &&
+    $current_user_id == $winner_user_id
+) {
+
+    $is_winner = true;
+}
 
     ob_start();
     ?>
@@ -431,10 +471,46 @@ function custom_buy_now_shortcode($atts) {
     </div>
 
     <div class="right-main">
-       <a href="<?php echo esc_url($cart_url); ?>"
-           class="custom-buy-now-btn">
-            Buy Now
+      <?php if (!$is_ended) : ?>
+
+    <!-- BEFORE AUCTION END -->
+
+    <a href="<?php echo esc_url($cart_url); ?>"
+       class="custom-buy-now-btn">
+
+        Buy Now
+
+    </a>
+
+<?php else : ?>
+
+
+    <?php if ($is_winner) : ?>
+
+        <!-- WINNER USER -->
+
+        <a href="<?php echo esc_url($cart_url); ?>"
+           class="custom-buy-now-btn winner-btn">
+
+            Claim Your Item
+
         </a>
+
+    <?php else : ?>
+
+        <!-- OTHER USERS -->
+
+        <button class="custom-buy-now-btn disabled-buy-btn"
+                disabled>
+
+            Auction Closed
+
+        </button>
+
+    <?php endif; ?>
+
+
+<?php endif; ?>
     </div>
 </div>
 
@@ -533,6 +609,31 @@ function custom_ajax_bid_box_shortcode($atts) {
             )
         );
     }
+	
+	
+	// Auction End Date
+$auction_end = get_post_meta(
+    $product_id,
+    'woo_ua_auction_end_date',
+    true
+);
+	
+// Auction Status
+$is_ended = false;
+
+if ($auction_end) {
+
+    $current_time = current_time('timestamp');
+
+    $end_time = strtotime($auction_end);
+
+    if ($current_time >= $end_time) {
+
+        $is_ended = true;
+    }
+}
+	
+	
 
     ob_start();
     ?>
@@ -623,9 +724,24 @@ function custom_ajax_bid_box_shortcode($atts) {
 
         <!-- PLACE BID BUTTON -->
 
-        <button class="place-bid-btn">
-            Place Bid
-        </button>
+        <button class="place-bid-btn <?php echo $is_ended ? 'auction-ended-btn' : ''; ?>"
+
+    <?php echo $is_ended ? 'disabled' : ''; ?>>
+
+    <?php
+
+    if ($is_ended) {
+
+        echo 'Auction Ended';
+
+    } else {
+
+        echo 'Place Bid';
+    }
+
+    ?>
+
+</button>
 
 
         <!-- POPUP -->
@@ -658,6 +774,28 @@ function custom_ajax_place_bid() {
     }
 
     $product_id = intval($_POST['product_id']);
+	// Check Auction End
+
+$auction_end = get_post_meta(
+    $product_id,
+    'woo_ua_auction_end_date',
+    true
+);
+
+if ($auction_end) {
+
+    if (current_time('timestamp') >= strtotime($auction_end)) {
+
+        wp_send_json(array(
+
+            'success' => false,
+
+            'message' => 'Auction has ended.'
+
+        ));
+    }
+}
+	
     $bid_amount = floatval($_POST['bid_amount']);
     $user_id    = get_current_user_id();
 
