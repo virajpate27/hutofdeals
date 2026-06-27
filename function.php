@@ -570,8 +570,16 @@ function custom_ajax_bid_box_shortcode($atts) {
         true
     );
 
-    // Increment Amount
+   $increment = get_post_meta(
+    $product_id,
+    'woo_ua_bid_increment',
+    true
+);
+
+// Fallback if admin leaves it blank
+if (empty($increment) || $increment <= 0) {
     $increment = 100;
+}
 
     // Minimum Next Bid
     $minimum_bid = $current_bid + $increment;
@@ -1836,6 +1844,82 @@ document.addEventListener("DOMContentLoaded", function() {
 
 add_action('wp_footer', 'custom_ajax_bid_scripts');
 
+//Product Title
+
+function custom_auction_product_title_shortcode($atts) {
+
+    $atts = shortcode_atts(array(
+        'id' => ''
+    ), $atts);
+
+    if (empty($atts['id'])) {
+        return 'Auction ID missing.';
+    }
+
+    $product_id = intval($atts['id']);
+
+    $title = get_the_title($product_id);
+
+    if (empty($title)) {
+        return 'Product not found.';
+    }
+
+    return '<span class="auction-product-title">' . esc_html($title) . '</span>';
+}
+
+add_shortcode('auction_product_title', 'custom_auction_product_title_shortcode');
+
+
+
+//Short Description 
+
+function custom_auction_short_description_shortcode($atts) {
+
+    $atts = shortcode_atts(array(
+        'id' => '',
+        'words' => 0 // 0 = Full description
+    ), $atts);
+
+    if (empty($atts['id'])) {
+        return 'Auction ID missing.';
+    }
+
+    $product_id = intval($atts['id']);
+
+    $post = get_post($product_id);
+
+    if (!$post) {
+        return 'Product not found.';
+    }
+
+    $short_description = $post->post_excerpt;
+
+    if (empty($short_description)) {
+        return 'No short description available.';
+    }
+
+    // Apply WordPress formatting
+    $short_description = apply_filters(
+        'woocommerce_short_description',
+        $short_description
+    );
+
+    // Limit words if requested
+    if ($atts['words'] > 0) {
+        $short_description = wp_trim_words(
+            wp_strip_all_tags($short_description),
+            intval($atts['words']),
+            '...'
+        );
+    }
+
+    return '<div class="auction-short-description">' . $short_description . '</div>';
+}
+
+add_shortcode(
+    'auction_short_description',
+    'custom_auction_short_description_shortcode'
+);
 
 
 //Product Gallery 
