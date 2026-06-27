@@ -721,10 +721,12 @@ if ($auction_end) {
 
         </div>
 
+		
+		
 
         <!-- PLACE BID BUTTON -->
 
-        <button class="place-bid-btn <?php echo $is_ended ? 'auction-ended-btn' : ''; ?>"
+        <button type="submit" class="place-bid-btn <?php echo $is_ended ? 'auction-ended-btn' : ''; ?>"
 
     <?php echo $is_ended ? 'disabled' : ''; ?>>
 
@@ -798,6 +800,320 @@ if ($auction_end) {
 	
     $bid_amount = floatval($_POST['bid_amount']);
     $user_id    = get_current_user_id();
+	
+	/* =====================================================
+   AUCTION END CHECK
+===================================================== */
+
+$auction_end = get_post_meta(
+    $product_id,
+    'woo_ua_auction_end_date',
+    true
+);
+
+if (
+    $auction_end
+    &&
+    current_time('timestamp')
+    >=
+    strtotime($auction_end)
+) {
+
+    // SEND WINNER EMAIL
+
+    $winner_id = get_post_meta(
+        $product_id,
+        'woo_ua_auction_current_bider',
+        true
+    );
+
+    if ($winner_id) {
+
+        $winner = get_user_by(
+            'id',
+            $winner_id
+        );
+
+        if ($winner) {
+
+            // Prevent Duplicate
+            $already_sent = get_post_meta(
+                $product_id,
+                '_winner_email_sent',
+                true
+            );
+
+            if (!$already_sent) {
+
+                $subject =
+                    'Congratulations! You Won The Auction';
+
+                $message = '
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<style>
+
+body{
+    margin:0;
+    padding:0;
+    background:#f4f4f4;
+    font-family:Arial,sans-serif;
+}
+
+.wrapper{
+    width:100%;
+    padding:40px 0;
+}
+
+.email-box{
+    max-width:650px;
+    margin:auto;
+    background:#ffffff;
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 10px 40px rgba(0,0,0,0.08);
+	border: 1px solid #00000017;
+}
+
+.header{
+    background: linear-gradient(90deg, rgba(15, 23, 42, 1) 0%, rgba(49, 46, 129, 1) 100%);
+    padding:40px;
+    text-align:center;
+}
+
+.logo{
+    max-width:100px;
+}
+
+.body{
+    padding:50px;
+}
+
+.badge{
+    display:inline-block;
+    background:#dcfce7;
+    color:#166534;
+    padding:10px 18px;
+    border-radius:100px;
+    font-size:14px;
+    font-weight:700;
+    margin-bottom:25px;
+}
+
+.title{
+    font-size:38px;
+    font-weight:700;
+    color:#111827;
+    margin-bottom:20px;
+}
+
+.text{
+    font-size:17px;
+    line-height:1.9;
+    color:#4b5563;
+}
+
+.winner-card{
+    background:#f0fdf4;
+    border:1px solid #bbf7d0;
+    border-radius:18px;
+    padding:35px;
+    margin-top:35px;
+    text-align:center;
+}
+
+.product-title{
+    font-size:22px;
+    font-weight:600;
+    color:#111827;
+    margin-bottom:20px;
+}
+
+.winning-price{
+    font-size:48px;
+    font-weight:700;
+    color:#166534;
+}
+
+.winner-icon{
+    font-size:60px;
+    margin-bottom:20px;
+}
+
+.cta-btn{
+    display:inline-block;
+    margin-top:40px;
+    background: linear-gradient(90deg, rgba(15, 23, 42, 1) 0%, rgba(49, 46, 129, 1) 100%);
+    color:#ffffff !important;
+    text-decoration:none;
+    padding:18px 40px;
+    border-radius:12px;
+    font-size:17px;
+    font-weight:600;
+}
+
+.note-box{
+    margin-top:35px;
+    background:#f9fafb;
+    padding:20px;
+    border-radius:12px;
+    color:#6b7280;
+    font-size:15px;
+    line-height:1.7;
+}
+
+.footer{
+    padding:30px;
+    text-align:center;
+    font-size:14px;
+    color:#9ca3af;
+    background:#fafafa;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="wrapper">
+
+    <div class="email-box">
+
+        <!-- HEADER -->
+
+        <div class="header">
+
+            <img class="logo"
+                 src="https://hutofdeals.com/wp-content/uploads/2026/05/f71cd7b3-e132-4291-bfad-6f9977f91e2f-Photoroom-1.png">
+
+        </div>
+
+
+        <!-- BODY -->
+
+        <div class="body">
+
+            <div class="badge">
+
+                AUCTION WON
+
+            </div>
+
+            <div class="title">
+
+                Congratulations!
+
+            </div>
+
+            <div class="text">
+
+                Hello ' . $winner->display_name . ',
+
+                <br><br>
+
+                You are the winning bidder for the auction below.
+
+            </div>
+
+
+            <!-- WINNER CARD -->
+
+            <div class="winner-card">
+
+                <div class="winner-icon">
+
+                    🏆
+
+                </div>
+
+                <div class="product-title">
+
+                    ' . get_the_title($product_id) . '
+
+                </div>
+
+                <div class="winning-price">
+
+                    ' . wc_price($winning_bid) . '
+
+                </div>
+
+            </div>
+
+
+            <!-- BUTTON -->
+
+            <a href="' . get_permalink($product_id) . '"
+
+               class="cta-btn">
+
+                Complete Purchase
+
+            </a>
+
+
+            <!-- NOTE -->
+
+            <div class="note-box">
+
+                Please complete your purchase as soon as possible
+                to secure your winning item.
+
+            </div>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <div class="footer">
+
+            © 2026 Hut of Deals. All rights reserved.
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>
+
+';
+
+                wp_mail(
+                    $winner->user_email,
+                    $subject,
+                    $message
+                );
+
+                update_post_meta(
+                    $product_id,
+                    '_winner_email_sent',
+                    1
+                );
+            }
+        }
+    }
+
+    wp_send_json(array(
+
+        'success' => false,
+
+        'message' => 'Auction has ended.'
+
+    ));
+}
+	
+	
+	
 
     // Current Bid
     $current_bid = get_post_meta(
@@ -833,6 +1149,250 @@ if ($auction_end) {
         ));
     }
 
+	
+
+	/* =====================================================
+   OUTBID EMAIL
+===================================================== */
+
+$previous_bidder_id = get_post_meta(
+    $product_id,
+    'woo_ua_auction_current_bider',
+    true
+);
+
+if (
+    $previous_bidder_id
+    &&
+    $previous_bidder_id != $user_id
+) {
+
+    $previous_user = get_user_by(
+        'id',
+        $previous_bidder_id
+    );
+
+    if ($previous_user) {
+
+        $subject = 'You Have Been Outbid';
+
+        $message = '
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<style>
+
+body{
+    margin:0;
+    padding:0;
+    background:#f4f4f4;
+    font-family:Arial,sans-serif;
+}
+
+.wrapper{
+    width:100%;
+    padding:40px 0;
+}
+
+.email-box{
+    max-width:650px;
+    margin:auto;
+    background:#ffffff;
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 10px 40px rgba(0,0,0,0.08);
+	border: 1px solid #00000017;
+}
+
+.header{
+    background: linear-gradient(90deg, rgba(15, 23, 42, 1) 0%, rgba(49, 46, 129, 1) 100%);
+    padding:20px;
+    text-align:center;
+}
+
+.logo{
+    max-width:100px;
+}
+
+.body{
+    padding:45px;
+}
+
+.badge{
+    display:inline-block;
+    background:#fee2e2;
+    color:#991b1b;
+    padding:10px 18px;
+    border-radius:100px;
+    font-size:14px;
+    font-weight:600;
+    margin-bottom:25px;
+}
+
+.title{
+    font-size:34px;
+    font-weight:700;
+    color:#111827;
+    margin-bottom:20px;
+}
+
+.text{
+    font-size:17px;
+    line-height:1.8;
+    color:#4b5563;
+}
+
+.bid-card{
+    background:#fff7ed;
+    border:1px solid #fed7aa;
+    border-radius:16px;
+    padding:30px;
+    margin-top:35px;
+}
+
+.product{
+    font-size:18px;
+    color:#111827;
+    margin-bottom:15px;
+}
+
+.bid-price{
+    font-size:42px;
+    font-weight:700;
+    color:#dc2626;
+}
+
+.cta-btn{
+    display:inline-block;
+    margin-top:35px;
+    background: linear-gradient(90deg, rgba(15, 23, 42, 1) 0%, rgba(49, 46, 129, 1) 100%);
+    color:#ffffff !important;
+    text-decoration:none;
+    padding:18px 36px;
+    border-radius:10px;
+    font-size:16px;
+    font-weight:600;
+}
+
+.footer{
+    padding:30px;
+    text-align:center;
+    font-size:14px;
+    color:#9ca3af;
+    background:#fafafa;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="wrapper">
+
+    <div class="email-box">
+
+        <!-- HEADER -->
+
+        <div class="header">
+
+            <img class="logo"
+                 src="https://hutofdeals.com/wp-content/uploads/2026/05/f71cd7b3-e132-4291-bfad-6f9977f91e2f-Photoroom-1.png">
+
+        </div>
+
+
+        <!-- BODY -->
+
+        <div class="body">
+
+            <div class="badge">
+
+                OUTBID ALERT
+
+            </div>
+
+            <div class="title">
+
+                You Have Been Outbid
+
+            </div>
+
+            <div class="text">
+
+                Hello ' . $previous_user->display_name . ',
+
+                <br><br>
+
+                Another bidder has placed a higher bid.
+
+            </div>
+
+
+            <!-- BID CARD -->
+
+            <div class="bid-card">
+
+                <div class="product">
+
+                    ' . get_the_title($product_id) . '
+
+                </div>
+
+                <div class="bid-price">
+
+                    Current Bid:
+                    ' . wc_price($bid_amount) . '
+
+                </div>
+
+            </div>
+
+
+            <!-- BUTTON -->
+
+            <a href="https://hutofdeals.com"
+
+               class="cta-btn">
+
+                Increase Your Bid
+
+            </a>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <div class="footer">
+
+            © 2026 Hut of Deals. All rights reserved.
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>
+
+';
+
+        wp_mail(
+            $previous_user->user_email,
+            $subject,
+            $message
+        );
+    }
+}
+	
+	
 
     // UPDATE CURRENT BID
 
@@ -841,6 +1401,8 @@ if ($auction_end) {
         'woo_ua_auction_current_bid',
         $bid_amount
     );
+	
+
 
 
     // UPDATE HIGHEST BIDDER
@@ -867,7 +1429,237 @@ if ($auction_end) {
             'date'       => current_time('mysql')
         )
     );
+	
+	/* =====================================================
+   BID PLACED CONFIRMATION EMAIL
+===================================================== */
 
+$current_user = get_user_by(
+    'id',
+    $user_id
+);
+
+if ($current_user) {
+
+    $subject = 'Bid Placed Successfully';
+
+    $message = ' <html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<style>
+
+body{
+    margin:0;
+    padding:0;
+    background:#f4f4f4;
+    font-family:Arial,sans-serif;
+}
+
+.wrapper{
+    width:100%;
+    padding:40px 0;
+}
+
+.email-box{
+    max-width:650px;
+    margin:auto;
+    background:#ffffff;
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 10px 40px rgba(0,0,0,0.08);
+	border: 1px solid #00000017;
+}
+
+.header{
+    background: linear-gradient(90deg, rgba(15, 23, 42, 1) 0%, rgba(49, 46, 129, 1) 100%);
+    padding:20px;
+    text-align:center;
+}
+
+.logo{
+    max-width:100px;
+}
+
+.body{
+    padding:45px;
+}
+
+.badge{
+    display:inline-block;
+    background:#dcfce7;
+    color:#166534;
+    padding:10px 18px;
+    border-radius:100px;
+    font-size:14px;
+    font-weight:600;
+    margin-bottom:25px;
+}
+
+.title{
+    font-size:34px;
+    font-weight:700;
+    color:#111827;
+    margin-bottom:20px;
+}
+
+.text{
+    font-size:17px;
+    line-height:1.8;
+    color:#4b5563;
+}
+
+.bid-card{
+    background:#f8fafc;
+    border:1px solid #e5e7eb;
+    border-radius:16px;
+    padding:30px;
+    margin-top:35px;
+}
+
+.product{
+    font-size:18px;
+    color:#111827;
+    margin-bottom:15px;
+}
+
+.bid-price{
+    font-size:42px;
+    font-weight:700;
+    color:#111827;
+}
+
+.cta-btn{
+    display:inline-block;
+    margin-top:35px;
+    background: linear-gradient(90deg, rgba(15, 23, 42, 1) 0%, rgba(49, 46, 129, 1) 100%);
+    color:#ffffff !important;
+    text-decoration:none;
+    padding:18px 36px;
+    border-radius:10px;
+    font-size:16px;
+    font-weight:600;
+}
+
+.footer{
+    padding:30px;
+    text-align:center;
+    font-size:14px;
+    color:#9ca3af;
+    background:#fafafa;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="wrapper">
+
+    <div class="email-box">
+
+        <!-- HEADER -->
+
+        <div class="header">
+
+            <img class="logo"
+                 src="https://hutofdeals.com/wp-content/uploads/2026/05/f71cd7b3-e132-4291-bfad-6f9977f91e2f-Photoroom-1.png">
+
+        </div>
+
+
+        <!-- BODY -->
+
+        <div class="body">
+
+            <div class="badge">
+
+                BID CONFIRMED
+
+            </div>
+
+            <div class="title">
+
+                Your Bid Was Submitted
+
+            </div>
+
+            <div class="text">
+
+                Hello ' . $current_user->display_name . ',
+
+                <br><br>
+
+                Your bid has been placed successfully.
+
+            </div>
+
+
+            <!-- BID CARD -->
+
+            <div class="bid-card">
+
+                <div class="product">
+
+                    ' . get_the_title($product_id) . '
+
+                </div>
+
+                <div class="bid-price">
+
+                    ' . wc_price($bid_amount) . '
+
+                </div>
+
+            </div>
+
+
+            <!-- BUTTON -->
+
+            <a href="https://hutofdeals.com"
+
+               class="cta-btn">
+
+                View Auction
+
+            </a>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <div class="footer">
+
+            © 2026 Hut of Deals. All rights reserved.
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>
+
+';
+
+    wp_mail(
+
+        $current_user->user_email,
+
+        $subject,
+
+        $message
+    );
+}
+	
+	
+	
 
     // RESPONSE
 
@@ -892,6 +1684,9 @@ add_action(
     'wp_ajax_nopriv_custom_ajax_place_bid',
     'custom_ajax_place_bid'
 );
+
+
+
 
 
 
@@ -1128,3 +1923,11 @@ function custom_product_gallery_shortcode($atts) {
 }
 
 add_shortcode('custom_product_gallery', 'custom_product_gallery_shortcode');
+
+
+add_filter(
+    'wp_mail_content_type',
+    function() {
+        return 'text/html';
+    }
+);
